@@ -1,0 +1,98 @@
+# ARM64 specific Dockerfile for Raspberry Pi 5
+FROM --platform=linux/arm64 ros:humble-ros-base
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ROS_DISTRO=humble
+ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV ROS_WS=/workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    # Build tools
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    software-properties-common \
+    # ROS2 dependencies
+    python3-rosdep \
+    python3-rosinstall \
+    python3-rosinstall-generator \
+    python3-wstool \
+    python3-colcon-common-extensions \
+    python3-vcstool \
+    # Intel RealSense dependencies (ARM64 compatible)
+    libssl-dev \
+    libusb-1.0-0-dev \
+    libudev-dev \
+    pkg-config \
+    libgtk-3-dev \
+    # Additional dependencies for SLAM and navigation
+    libpcl-dev \
+    libopencv-dev \
+    libeigen3-dev \
+    libboost-all-dev \
+    # Serial communication for RoboClaw
+    python3-serial \
+    # Network tools
+    net-tools \
+    iputils-ping \
+    # ARM64 specific tools
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Intel RealSense SDK from source for ARM64
+RUN cd /tmp && \
+    git clone https://github.com/IntelRealSense/librealsense.git && \
+    cd librealsense && \
+    git checkout v2.54.1 && \
+    mkdir build && cd build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_EXAMPLES=false \
+        -DBUILD_GRAPHICAL_EXAMPLES=false \
+        -DBUILD_PYTHON_BINDINGS=false \
+        -DBUILD_UNITY_BINDINGS=false \
+        -DBUILD_NODEJS_BINDINGS=false \
+        -DBUILD_CV_EXAMPLES=false && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig && \
+    cd / && rm -rf /tmp/librealsense
+
+# Create workspace
+WORKDIR ${ROS_WS}
+
+# Copy source files
+COPY src/ src/
+
+# Install ROS dependencies
+RUN apt-get update && rosdep init || true \
+    && rosdep update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build the workspace for ARM64
+RUN . ${ROS_ROOT}/setup.sh \
+    && colcon build --symlink-install \
+        --cmake-args -DCMAKE_BUILD_TYPE=Release \
+        --parallel-workers $(nproc) \
+    && rm -rf build log
+
+# Setup entrypoint
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set up the environment
+RUN echo "source ${ROS_ROOT}/setup.bash" >> ~/.bashrc \
+    && echo "source ${ROS_WS}/install/setup.bash" >> ~/.bashrc
+
+# Optimize for Raspberry Pi 5
+ENV MALLOC_ARENA_MAX=2
+ENV PYTHONUNBUFFERED=1
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

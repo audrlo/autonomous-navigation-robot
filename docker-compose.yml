@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  robot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ROS_DISTRO=humble
+    image: autonomous-robot:latest
+    container_name: robot_container
+    privileged: true
+    network_mode: host
+    volumes:
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./logs:/workspace/logs
+      - ./maps:/workspace/maps
+    environment:
+      - DISPLAY=${DISPLAY}
+      - ROS_DOMAIN_ID=42
+      - PYTHONUNBUFFERED=1
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0  # RoboClaw serial
+      - /dev/video0:/dev/video0    # RealSense camera
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        source /workspace/install/setup.bash &&
+        ros2 launch robot_bringup robot.launch.py
+      "
+    restart: unless-stopped
+
+  # Optional: RViz for visualization (run on development machine)
+  rviz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ROS_DISTRO=humble
+    image: autonomous-robot:latest
+    container_name: rviz_container
+    network_mode: host
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./config:/workspace/config
+    environment:
+      - DISPLAY=${DISPLAY}
+      - ROS_DOMAIN_ID=42
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        rviz2 -d /workspace/config/robot.rviz
+      "
+    profiles: ["dev"]  # Only start with --profile dev
+    depends_on:
+      - robot
