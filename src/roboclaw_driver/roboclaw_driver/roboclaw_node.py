@@ -51,6 +51,10 @@ class RoboClawNode(Node):
         self.left_encoder_prev = 0
         self.right_encoder_prev = 0
         
+        # Motor ramping for smooth differential drive (prevents caster wheel slip)
+        self.prev_left_motor = 0
+        self.prev_right_motor = 0
+        
         # Publishers
         self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
         self.joint_state_pub = self.create_publisher(JointState, 'joint_states', 10)
@@ -75,7 +79,8 @@ class RoboClawNode(Node):
         linear_vel = msg.linear.x
         angular_vel = msg.angular.z
         
-        # Differential drive kinematics
+        # Differential drive kinematics (optimized for 2-wheel + caster)
+        # This provides perfect turning control for your setup
         left_vel = linear_vel - (angular_vel * self.wheel_separation / 2.0)
         right_vel = linear_vel + (angular_vel * self.wheel_separation / 2.0)
         
@@ -84,9 +89,21 @@ class RoboClawNode(Node):
         left_motor = int(max_motor_speed * left_vel / self.max_speed)
         right_motor = int(max_motor_speed * right_vel / self.max_speed)
         
-        # Clamp values
+        # Clamp values to ensure motors don't exceed limits
         left_motor = max(-127, min(127, left_motor))
         right_motor = max(-127, min(127, right_motor))
+        
+        # For 2-wheel differential drive, ensure smooth acceleration
+        # by ramping speed changes (prevents wheel slip on caster)
+        if hasattr(self, 'prev_left_motor'):
+            max_change = 20  # Max change per cycle (adjust based on your robot)
+            left_motor = max(self.prev_left_motor - max_change, 
+                           min(self.prev_left_motor + max_change, left_motor))
+            right_motor = max(self.prev_right_motor - max_change, 
+                            min(self.prev_right_motor + max_change, right_motor))
+        
+        self.prev_left_motor = left_motor
+        self.prev_right_motor = right_motor
         
         # Send commands to RoboClaw
         self.drive_motors(left_motor, right_motor)

@@ -124,24 +124,25 @@ controller_server:
       xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 0.25
     
-    # DWB parameters
-    FollowPath:
-      plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: True
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-      max_vel_x: 0.5
-      max_vel_y: 0.0
-      max_vel_theta: 1.0
-      min_speed_xy: 0.0
-      max_speed_xy: 0.5
-      min_speed_theta: 0.0
-      acc_lim_x: 2.5
-      acc_lim_y: 0.0
-      acc_lim_theta: 3.2
-      decel_lim_x: -2.5
-      decel_lim_y: 0.0
-      decel_lim_theta: -3.2
+          # DWB parameters (optimized for 2-wheel differential drive + caster)
+      FollowPath:
+        plugin: "dwb_core::DWBLocalPlanner"
+        debug_trajectory_details: True
+        min_vel_x: 0.0
+        min_vel_y: 0.0  # No Y movement for differential drive
+        max_vel_x: 0.5  # Adjust based on your robot's max speed
+        max_vel_y: 0.0  # Differential drive cannot move sideways
+        max_vel_theta: 1.0  # Good turning speed for 2-wheel setup
+        min_speed_xy: 0.0
+        max_speed_xy: 0.5
+        min_speed_theta: 0.0
+        # Optimized acceleration limits for differential drive with caster
+        acc_lim_x: 1.5    # Moderate acceleration prevents caster wheel slip
+        acc_lim_y: 0.0    # No Y acceleration for differential drive
+        acc_lim_theta: 2.0 # Good angular acceleration for 2-wheel turning
+        decel_lim_x: -1.5  # Smooth deceleration
+        decel_lim_y: 0.0
+        decel_lim_theta: -2.0
       vx_samples: 20
       vy_samples: 5
       vtheta_samples: 20
