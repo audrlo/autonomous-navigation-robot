@@ -4,12 +4,12 @@ A complete autonomous navigation robot system using ROS2 Humble, Intel RealSense
 
 ## Features
 
-- 🤖 **Autonomous Navigation** - Full Nav2 stack with path planning and following
-- 🗺️ **SLAM Mapping** - Real-time mapping using RTAB-Map with Intel RealSense D455
-- 🚧 **Obstacle Avoidance** - Real-time obstacle detection within 2 feet using depth data
-- 🎮 **Motor Control** - RoboClaw 2x30A integration for differential drive
-- 🐳 **Containerized** - Complete Docker setup for easy deployment
-- 🔧 **Raspberry Pi 5 Ready** - ARM64 support with optimized build
+- **Autonomous Navigation** - Full Nav2 stack with path planning and following
+- **SLAM Mapping** - Real-time mapping using RTAB-Map with Intel RealSense D455
+- **Obstacle Avoidance** - Real-time obstacle detection within 2 feet using depth data
+- **Motor Control** - RoboClaw 2x30A integration for differential drive
+- **Containerized** - Complete Docker setup for easy deployment
+- **Raspberry Pi 5 Ready** - ARM64 support with optimized build
 
 ## Hardware Requirements
 
